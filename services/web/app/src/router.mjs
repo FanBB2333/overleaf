@@ -66,6 +66,7 @@ import SocketDiagnostics from './Features/SocketDiagnostics/SocketDiagnostics.mj
 import ClsiCacheController from './Features/Compile/ClsiCacheController.mjs'
 import AsyncLocalStorage from './infrastructure/AsyncLocalStorage.mjs'
 import AIController from './Features/AI/AIController.mjs'
+import ClaudeCodeController from './Features/ClaudeCode/ClaudeCodeController.mjs'
 
 const { renderUnsupportedBrowserPage, unsupportedBrowserMiddleware } =
   UnsupportedBrowserMiddleware
@@ -585,6 +586,26 @@ async function initialize(webRouter, privateApiRouter, publicApiRouter) {
       AuthenticationController.requireLogin(),
       AuthorizationMiddleware.ensureUserCanWriteProjectContent,
       AIController.applyChanges
+    )
+  }
+  if (Features.hasFeature('claude-code')) {
+    webRouter.post(
+      '/project/:Project_id/claude-code/session',
+      AuthenticationController.requireLogin(),
+      AuthorizationMiddleware.ensureUserCanWriteProjectContent,
+      ClaudeCodeController.createSession
+    )
+    webRouter.delete(
+      '/project/:Project_id/claude-code/session',
+      AuthenticationController.requireLogin(),
+      AuthorizationMiddleware.ensureUserCanWriteProjectContent,
+      ClaudeCodeController.destroySession
+    )
+    webRouter.get(
+      '/project/:Project_id/claude-code/status',
+      AuthenticationController.requireLogin(),
+      AuthorizationMiddleware.ensureUserCanReadProject,
+      ClaudeCodeController.getStatus
     )
   }
   webRouter.post(

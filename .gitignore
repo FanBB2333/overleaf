@@ -4,3 +4,12 @@
 # user defined files
 .env
 docker-compose.override.yml
+node_modules
+
+# Docker development
+/develop/compiles/
+/develop/output/
+/tmp/overleaf-workspaces/
+
+# Claude Code sessions
+*.fuse_hidden*

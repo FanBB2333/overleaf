@@ -38,6 +38,8 @@ import http from 'node:http'
 import { fileURLToPath } from 'node:url'
 import serveStaticWrapper from './ServeStaticWrapper.mjs'
 import { handleValidationError } from '@overleaf/validation-tools'
+import { Server as SocketIOServer } from 'socket.io'
+import { setupClaudeCodeSocket } from '../Features/ClaudeCode/ClaudeCodeSocketHandler.mjs'
 
 const { hasAdminAccess } = AdminAuthorizationHelper
 const sessionsRedisClient = UserSessionsRedis.client()
@@ -351,6 +353,20 @@ if (Settings.csp && Settings.csp.enabled) {
 
 logger.debug('creating HTTP server'.yellow)
 const server = http.createServer(app)
+
+// Setup Socket.IO for Claude Code
+const io = new SocketIOServer(server, {
+  path: '/socket.io',
+  cors: {
+    origin: Settings.siteUrl,
+    credentials: true,
+  },
+})
+
+if (Features.hasFeature('claude-code')) {
+  setupClaudeCodeSocket(io, sessionStore)
+  logger.debug('Claude Code Socket.IO namespace initialized')
+}
 
 // provide settings for separate web and api processes
 if (Settings.enabledServices.includes('api')) {

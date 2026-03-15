@@ -67,6 +67,8 @@ const Features = {
         return Boolean(Settings.enableGitBridge)
       case 'ai-assistant':
         return Boolean(Settings.aiAssistant?.enabled)
+      case 'claude-code':
+        return Boolean(Settings.claudeCode?.enabled)
       case 'oauth':
         return Boolean(Settings.oauth)
       case 'templates-server-pro':

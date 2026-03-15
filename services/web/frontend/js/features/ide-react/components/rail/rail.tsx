@@ -9,6 +9,7 @@ import {
 import FileTreeOutlinePanel from '@/features/file-tree/components/file-tree-outline-panel'
 import ChatPane from '@/features/chat/components/chat-pane'
 import ChatIndicator from '@/features/chat/components/chat-indicator'
+import ClaudeCodePane from '@/features/claude-code/components/claude-code-pane'
 import getMeta from '@/utils/meta'
 import classNames from 'classnames'
 import IntegrationsPanel from '@/features/integrations-panel/integrations-panel'
@@ -138,6 +139,13 @@ export const RailLayout = () => {
         hide:
           !getMeta('ol-capabilities')?.includes('chat') ||
           isRestrictedTokenMember,
+      },
+      {
+        key: 'claude-code',
+        icon: 'terminal',
+        title: 'Claude Code',
+        component: <ClaudeCodePane />,
+        hide: !getMeta('ol-capabilities')?.includes('claude-code'),
       },
       ...moduleRailEntries,
     ],
