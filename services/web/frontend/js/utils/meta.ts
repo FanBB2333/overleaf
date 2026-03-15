@@ -106,7 +106,9 @@ export interface Meta {
   'ol-cannot-link-other-third-party-sso': boolean
   'ol-cannot-reactivate-subscription': boolean
   'ol-cannot-use-ai': boolean
-  'ol-capabilities': Array<'dropbox' | 'chat' | 'use-ai' | 'link-sharing'>
+  'ol-capabilities': Array<
+    'dropbox' | 'chat' | 'use-ai' | 'link-sharing' | 'claude-code'
+  >
 
   'ol-compileSettings': {
     compileTimeout: number

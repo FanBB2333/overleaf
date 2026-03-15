@@ -840,6 +840,10 @@ const _ProjectController = {
         capabilities.push('link-sharing')
       }
 
+      if (Features.hasFeature('claude-code')) {
+        capabilities.push('claude-code')
+      }
+
       let fullFeatureSet = user?.features
       if (!anonymous) {
         fullFeatureSet = await UserGetter.promises.getUserFeatures(userId)

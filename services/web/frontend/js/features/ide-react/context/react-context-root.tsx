@@ -31,6 +31,7 @@ import { UserSettingsProvider } from '@/shared/context/user-settings-context'
 import { CommandRegistryProvider } from './command-registry-context'
 import { NewEditorTourProvider } from '@/features/ide-redesign/contexts/new-editor-tour-context'
 import { EditorSelectionProvider } from '@/shared/context/editor-selection-context'
+import { ClaudeCodeProvider } from '@/features/claude-code/context/claude-code-context'
 import importOverleafModules from '../../../../macros/import-overleaf-module.macro'
 import { TutorialProvider } from '@/shared/context/tutorial-context'
 
@@ -77,6 +78,7 @@ export const ReactContextRoot: FC<
     UserFeaturesProvider,
     NewEditorTourProvider,
     EditorSelectionProvider,
+    ClaudeCodeProvider,
     TutorialProvider,
     ...providers,
   }
@@ -126,11 +128,13 @@ export const ReactContextRoot: FC<
                                                               <Providers.MetadataProvider>
                                                                 <Providers.OutlineProvider>
                                                                   <Providers.CommandRegistryProvider>
-                                                                    <Providers.EditorSelectionProvider>
-                                                                      {
-                                                                        childrenWrappedWithDynamicProviders
-                                                                      }
-                                                                    </Providers.EditorSelectionProvider>
+                                                                    <Providers.ClaudeCodeProvider>
+                                                                      <Providers.EditorSelectionProvider>
+                                                                        {
+                                                                          childrenWrappedWithDynamicProviders
+                                                                        }
+                                                                      </Providers.EditorSelectionProvider>
+                                                                    </Providers.ClaudeCodeProvider>
                                                                   </Providers.CommandRegistryProvider>
                                                                 </Providers.OutlineProvider>
                                                               </Providers.MetadataProvider>
