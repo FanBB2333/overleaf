@@ -65,6 +65,7 @@ import { plainTextResponse } from './infrastructure/Response.mjs'
 import SocketDiagnostics from './Features/SocketDiagnostics/SocketDiagnostics.mjs'
 import ClsiCacheController from './Features/Compile/ClsiCacheController.mjs'
 import AsyncLocalStorage from './infrastructure/AsyncLocalStorage.mjs'
+import AIController from './Features/AI/AIController.mjs'
 
 const { renderUnsupportedBrowserPage, unsupportedBrowserMiddleware } =
   UnsupportedBrowserMiddleware
@@ -572,6 +573,20 @@ async function initialize(webRouter, privateApiRouter, publicApiRouter) {
     AuthorizationMiddleware.ensureUserCanReadProject,
     DocumentUpdaterController.getDoc
   )
+  if (Features.hasFeature('ai-assistant')) {
+    webRouter.get(
+      '/project/:Project_id/ai/workspace',
+      AuthenticationController.requireLogin(),
+      AuthorizationMiddleware.ensureUserCanWriteProjectContent,
+      AIController.getWorkspace
+    )
+    webRouter.post(
+      '/project/:Project_id/ai/apply',
+      AuthenticationController.requireLogin(),
+      AuthorizationMiddleware.ensureUserCanWriteProjectContent,
+      AIController.applyChanges
+    )
+  }
   webRouter.post(
     '/project/:Project_id/settings',
     AuthorizationMiddleware.ensureUserCanWriteProjectSettings,

@@ -1,7 +1,10 @@
-import { lazy, memo, Suspense } from 'react'
+import { lazy, memo, Suspense, useCallback, useState } from 'react'
 import { FullSizeLoadingSpinner } from '../../../shared/components/loading-spinner'
 import withErrorBoundary from '../../../infrastructure/error-boundary'
 import { ErrorBoundaryFallback } from '../../../shared/components/error-boundary-fallback'
+import getMeta from '@/utils/meta'
+import useEventListener from '@/shared/hooks/use-event-listener'
+import { AIAssistantPanel } from '@/features/ai-assistant/ai-assistant-panel'
 
 const CodeMirrorEditor = lazy(
   () =>
@@ -9,10 +12,30 @@ const CodeMirrorEditor = lazy(
 )
 
 function SourceEditor() {
+  const aiAssistant = getMeta('ol-aiAssistant')
+  const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false)
+
+  const toggleAIAssistant = useCallback(() => {
+    if (!aiAssistant?.enabled) {
+      return
+    }
+    setIsAIAssistantOpen(open => !open)
+  }, [aiAssistant])
+
+  useEventListener('ai-assistant:toggle', toggleAIAssistant)
+
   return (
-    <Suspense fallback={<FullSizeLoadingSpinner delay={500} />}>
-      <CodeMirrorEditor />
-    </Suspense>
+    <div className="ol-ai-assistant-shell">
+      <div className="ol-ai-assistant-editor">
+        <Suspense fallback={<FullSizeLoadingSpinner delay={500} />}>
+          <CodeMirrorEditor />
+        </Suspense>
+      </div>
+      <AIAssistantPanel
+        open={isAIAssistantOpen}
+        onClose={() => setIsAIAssistantOpen(false)}
+      />
+    </div>
   )
 }
 

@@ -54,6 +54,7 @@ import { formatCurrency } from '../../util/currency.js'
 import UserSettingsHelper from './UserSettingsHelper.mjs'
 import AiFeatureUsageRateLimiter from '../../infrastructure/rate-limiters/AiFeatureUsageRateLimiter.mjs'
 import WorkbenchRateLimiter from '../../infrastructure/rate-limiters/WorkbenchRateLimiter.mjs'
+import AIService from '../AI/AIService.mjs'
 
 const { isPaidSubscription } = SubscriptionHelper
 const { hasAdminAccess } = AdminAuthorizationHelper
@@ -887,6 +888,14 @@ const _ProjectController = {
       const initialLoadingScreenTheme = getInitialLoadingScreenTheme(
         userSettings?.overallTheme
       )
+      const aiAssistantConfig = AIService.getPublicConfig()
+      const aiAssistantEnabled =
+        aiAssistantConfig.enabled &&
+        Boolean(userId) &&
+        [
+          PrivilegeLevels.OWNER,
+          PrivilegeLevels.READ_AND_WRITE,
+        ].includes(privilegeLevel)
 
       res.render(template, {
         title: project.name,
@@ -958,6 +967,10 @@ const _ProjectController = {
         symbolPaletteAvailable: Features.hasFeature('symbol-palette'),
         userRestrictions: Array.from(req.userRestrictions || []),
         showAiFeatures,
+        aiAssistant: {
+          ...aiAssistantConfig,
+          enabled: aiAssistantEnabled,
+        },
         onAiFreeTrial:
           user.features?.aiUsageQuota === Settings.aiFeatures?.freeTrialQuota,
         detachRole,

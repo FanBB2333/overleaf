@@ -70,6 +70,13 @@ import { WritefullPublicEnv } from '@wf/domain/writefull-public-env'
 import { UserNotificationPreferences } from '../../../types/notifications'
 
 export interface Meta {
+  'ol-aiAssistant': {
+    enabled: boolean
+    provider: string
+    bridgeUrl: string | null
+    localBridge: boolean
+    source: string
+  }
   'ol-ExposedSettings': ExposedSettings
   'ol-addonPrices': Record<
     string,

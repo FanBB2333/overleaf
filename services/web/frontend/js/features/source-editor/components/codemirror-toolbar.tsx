@@ -34,6 +34,7 @@ import classNames from 'classnames'
 import { useUserSettingsContext } from '@/shared/context/user-settings-context'
 import { useFeatureFlag } from '@/shared/context/split-test-context'
 import importOverleafModules from '../../../../macros/import-overleaf-module.macro'
+import { AIAssistantToggleButton } from '@/features/ai-assistant/ai-assistant-toggle-button'
 
 const sourceEditorToolbarComponents = importOverleafModules(
   'sourceEditorToolbarComponents'
@@ -211,6 +212,7 @@ const Toolbar = memo(function Toolbar() {
                 <Component key={path} />
               )
             )}
+            <AIAssistantToggleButton />
             <ToggleSearchButton state={state} />
             <SwitchToPDFButton />
             <DetacherSynctexControl />

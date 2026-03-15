@@ -65,6 +65,8 @@ const Features = {
         return Boolean(Settings.enableGithubSync)
       case 'git-bridge':
         return Boolean(Settings.enableGitBridge)
+      case 'ai-assistant':
+        return Boolean(Settings.aiAssistant?.enabled)
       case 'oauth':
         return Boolean(Settings.oauth)
       case 'templates-server-pro':
