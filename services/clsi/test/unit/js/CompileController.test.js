@@ -184,6 +184,35 @@ describe('CompileController', () => {
       })
     })
 
+    describe('with a protocol-less downloadHost', () => {
+      beforeEach(ctx => {
+        ctx.Settings.apis.clsi.downloadHost = 'clsi-nginx'
+        ctx.CompileController.compile(ctx.req, ctx.res)
+      })
+
+      it('should normalize output file urls to http', ctx => {
+        ctx.res.status.calledWith(200).should.equal(true)
+        ctx.res.send
+          .calledWith({
+            compile: {
+              status: 'success',
+              error: null,
+              stats: ctx.stats,
+              timings: ctx.timings,
+              buildId: ctx.buildId,
+              outputUrlPrefix: '/zone/b',
+              outputFiles: ctx.output_files.map(file => ({
+                url: `http://clsi-nginx/project/${ctx.project_id}/build/${file.build}/output/${file.path}`,
+                ...file,
+              })),
+              clsiCacheShard: undefined,
+              baseHistoryVersion: undefined,
+            },
+          })
+          .should.equal(true)
+      })
+    })
+
     describe('with user provided fake_output.pdf', () => {
       beforeEach(ctx => {
         ctx.output_files = [

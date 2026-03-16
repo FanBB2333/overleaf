@@ -711,7 +711,7 @@ function _parseOutputFiles(projectId, rawOutputFiles = []) {
   for (const file of rawOutputFiles) {
     const f = {
       path: file.path, // the clsi is now sending this to web
-      url: new URL(file.url).pathname, // the location of the file on the clsi, excluding the host part
+      url: _parseOutputFileUrl(file.url),
       type: file.type,
       build: file.build,
     }
@@ -725,6 +725,26 @@ function _parseOutputFiles(projectId, rawOutputFiles = []) {
     outputFiles.push(f)
   }
   return outputFiles
+}
+
+function _parseOutputFileUrl(fileUrl) {
+  if (typeof fileUrl !== 'string' || fileUrl.length === 0) {
+    return ''
+  }
+
+  if (fileUrl.startsWith('/')) {
+    return fileUrl
+  }
+
+  const normalizedUrl = /^[a-z][a-z\d+\-.]*:\/\//i.test(fileUrl)
+    ? fileUrl
+    : `http://${fileUrl}`
+
+  try {
+    return new URL(normalizedUrl).pathname
+  } catch {
+    return `/${fileUrl.replace(/^\.?\/+/, '')}`
+  }
 }
 
 async function _buildRequest(projectId, userId, options) {

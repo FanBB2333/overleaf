@@ -449,6 +449,45 @@ describe('ClsiManager', function () {
       })
     })
 
+    describe('with protocol-less output file urls', function () {
+      beforeEach(async function (ctx) {
+        ctx.outputFiles = [
+          {
+            url: `/project/${ctx.project._id}/user/${ctx.user_id}/build/1234/output/output.pdf`,
+            path: 'output.pdf',
+            type: 'pdf',
+            build: 1234,
+          },
+          {
+            url: `/project/${ctx.project._id}/user/${ctx.user_id}/build/1234/output/output.log`,
+            path: 'output.log',
+            type: 'log',
+            build: 1234,
+          },
+        ]
+        ctx.responseBody.compile.outputFiles = ctx.outputFiles.map(
+          outputFile => ({
+            ...outputFile,
+            url: `clsi-nginx${outputFile.url}`,
+          })
+        )
+        ctx.result = await ctx.ClsiManager.promises.sendRequest(
+          ctx.project._id,
+          ctx.user_id,
+          { compileBackendClass: 'c3d', compileGroup: 'standard' }
+        )
+      })
+
+      it('should normalize the output file pathnames', function (ctx) {
+        expect(ctx.result.outputFiles.map(file => file.path)).to.have.members(
+          ctx.outputFiles.map(file => file.path)
+        )
+        expect(ctx.result.outputFiles.map(file => file.url)).to.have.members(
+          ctx.outputFiles.map(file => file.url)
+        )
+      })
+    })
+
     describe('with the incremental compile option', function () {
       beforeEach(async function (ctx) {
         const doc = ctx.docs['/main.tex']

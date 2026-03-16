@@ -16,6 +16,19 @@ function timeSinceLastSuccessfulCompile() {
   return Date.now() - lastSuccessfulCompileTimestamp
 }
 
+function normalizeDownloadHost(downloadHost) {
+  if (typeof downloadHost !== 'string' || downloadHost.length === 0) {
+    return ''
+  }
+
+  const trimmedDownloadHost = downloadHost.replace(/\/+$/, '')
+  if (/^[a-z][a-z\d+\-.]*:\/\//i.test(trimmedDownloadHost)) {
+    return trimmedDownloadHost
+  }
+
+  return `http://${trimmedDownloadHost}`
+}
+
 function compile(req, res, next) {
   const timer = new Metrics.Timer('compile-request')
   RequestParser.parse(req.body, function (error, request) {
@@ -146,6 +159,9 @@ function compile(req, res, next) {
             }
 
             timer.done()
+            const downloadHost = normalizeDownloadHost(
+              Settings.apis.clsi.downloadHost
+            )
             res.status(code || 200).send({
               compile: {
                 status,
@@ -158,7 +174,7 @@ function compile(req, res, next) {
                 outputUrlPrefix: Settings.apis.clsi.outputUrlPrefix,
                 outputFiles: outputFiles.map(file => ({
                   url:
-                    `${Settings.apis.clsi.downloadHost}/project/${request.project_id}` +
+                    `${downloadHost}/project/${request.project_id}` +
                     (request.user_id != null
                       ? `/user/${request.user_id}`
                       : '') +
