@@ -1,8 +1,16 @@
 import pty from 'node-pty'
 import logger from '@overleaf/logger'
 import Settings from '@overleaf/settings'
+import { pipeline } from 'node:stream/promises'
 import fs from 'node:fs/promises'
+import nodeFs from 'node:fs'
 import path from 'node:path'
+import pLimit from 'p-limit'
+import AIService from '../AI/AIService.mjs'
+import HistoryManager from '../History/HistoryManager.mjs'
+import ProjectEntityHandler from '../Project/ProjectEntityHandler.mjs'
+
+const WORKSPACE_SYNC_CONCURRENCY = 8
 
 class ClaudeCodeService {
   constructor() {
@@ -20,6 +28,7 @@ class ClaudeCodeService {
     try {
       const workDir = path.join(Settings.claudeCode.workspaceBasePath, `workspace-${projectId}`)
       await fs.mkdir(workDir, { recursive: true })
+      await this.populateWorkspace(projectId, workDir)
 
       const terminalPath =
         Settings.claudeCode.cliPath || process.env.SHELL || '/bin/bash'
@@ -168,6 +177,63 @@ class ClaudeCodeService {
     logger.info('Cleaning up all Claude Code sessions')
     const projectIds = Array.from(this.sessions.keys())
     await Promise.all(projectIds.map(id => this.destroySession(id)))
+  }
+
+  async populateWorkspace(projectId, workDir) {
+    const workspace = await AIService.getWorkspaceSnapshot(projectId)
+
+    await Promise.all(
+      workspace.docs.map(async doc => {
+        const workspacePath = this.getWorkspacePath(workDir, doc.path)
+        await fs.mkdir(path.dirname(workspacePath), { recursive: true })
+        await fs.writeFile(workspacePath, doc.content, 'utf-8')
+      })
+    )
+
+    const filesByPath = await ProjectEntityHandler.promises.getAllFiles(projectId)
+    const limit = pLimit(WORKSPACE_SYNC_CONCURRENCY)
+
+    await Promise.all(
+      Object.entries(filesByPath).map(([projectPath, file]) =>
+        limit(async () => {
+          if (!file.hash) {
+            return
+          }
+
+          const workspacePath = this.getWorkspacePath(workDir, projectPath)
+          await fs.mkdir(path.dirname(workspacePath), { recursive: true })
+
+          try {
+            const { stream } = await HistoryManager.promises.requestBlobWithProjectId(
+              projectId,
+              file.hash,
+              'GET'
+            )
+            await pipeline(stream, nodeFs.createWriteStream(workspacePath))
+          } catch (error) {
+            logger.warn(
+              { projectId, projectPath, fileId: file._id, error },
+              'Failed to project binary file into terminal workspace'
+            )
+          }
+        })
+      )
+    )
+
+    logger.info(
+      {
+        projectId,
+        workDir,
+        docCount: workspace.docs.length,
+        fileCount: Object.keys(filesByPath).length,
+      },
+      'Projected project into terminal workspace'
+    )
+  }
+
+  getWorkspacePath(workDir, projectPath) {
+    const relativePath = projectPath.replace(/^\/+/, '')
+    return path.join(workDir, relativePath)
   }
 }
 
