@@ -24,9 +24,7 @@ export function setupClaudeCodeSocket(io, sessionStore) {
           return
         }
 
-        ClaudeCodeService.addConnection(projectId, socket.id)
-
-        session.pty.onData(data => {
+        ClaudeCodeService.addConnection(projectId, socket.id, data => {
           socket.emit('terminal-output', data)
         })
 

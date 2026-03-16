@@ -111,15 +111,22 @@ export default function ClaudeCodePane() {
     socket.on('session-started', handleSessionStarted)
     socket.on('session-error', handleSessionError)
 
+    const startSession = () => {
+      socket.emit('start-session')
+    }
+
+    socket.on('connect', startSession)
+
     const disposable = terminal.onData(data => {
       socket.emit('terminal-input', data)
     })
 
     if (socket.connected) {
-      socket.emit('start-session')
+      startSession()
     }
 
     return () => {
+      socket.off('connect', startSession)
       socket.off('terminal-output', handleTerminalOutput)
       socket.off('session-started', handleSessionStarted)
       socket.off('session-error', handleSessionError)

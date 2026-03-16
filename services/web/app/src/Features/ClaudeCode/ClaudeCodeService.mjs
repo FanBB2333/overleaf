@@ -8,6 +8,7 @@ class ClaudeCodeService {
   constructor() {
     this.sessions = new Map()
     this.sessionTimeouts = new Map()
+    this.maxBufferedOutputBytes = 64 * 1024
   }
 
   async createSession(projectId, userId) {
@@ -49,10 +50,21 @@ class ClaudeCodeService {
         projectId,
         workDir,
         createdAt: Date.now(),
-        connections: new Set(),
+        connections: new Map(),
+        outputBuffer: '',
       }
 
       this.sessions.set(projectId, session)
+
+      ptyProcess.onData(data => {
+        session.outputBuffer = `${session.outputBuffer}${data}`.slice(
+          -this.maxBufferedOutputBytes
+        )
+
+        for (const sendOutput of session.connections.values()) {
+          sendOutput(data)
+        }
+      })
 
       ptyProcess.onExit(({ exitCode, signal }) => {
         logger.info({ projectId, exitCode, signal }, 'Claude Code PTY exited')
@@ -119,13 +131,17 @@ class ClaudeCodeService {
     session.pty.resize(cols, rows)
   }
 
-  addConnection(projectId, socketId) {
+  addConnection(projectId, socketId, sendOutput) {
     const session = this.sessions.get(projectId)
     if (session) {
-      session.connections.add(socketId)
+      session.connections.set(socketId, sendOutput)
       if (this.sessionTimeouts.has(projectId)) {
         clearTimeout(this.sessionTimeouts.get(projectId))
         this.sessionTimeouts.delete(projectId)
+      }
+
+      if (session.outputBuffer.length > 0) {
+        sendOutput(session.outputBuffer)
       }
     }
   }
