@@ -10,6 +10,11 @@ module.exports = merge(base, {
     },
     proxy: [
       {
+        context: '/terminal/socket.io/**',
+        target: 'http://web:3000',
+        ws: true,
+      },
+      {
         context: '/socket.io/**',
         target: 'http://real-time:3026',
         ws: true,

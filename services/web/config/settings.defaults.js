@@ -1096,7 +1096,7 @@ module.exports = {
 
   claudeCode: {
     enabled: process.env.CLAUDE_CODE_ENABLED === 'true',
-    cliPath: process.env.CLAUDE_CODE_CLI_PATH || 'claude',
+    cliPath: process.env.CLAUDE_CODE_CLI_PATH || process.env.SHELL || '/bin/bash',
     sessionTimeout: intFromEnv('CLAUDE_CODE_SESSION_TIMEOUT', 1800000),
     maxSessionsPerUser: intFromEnv('CLAUDE_CODE_MAX_SESSIONS_PER_USER', 3),
     workspaceBasePath: process.env.CLAUDE_CODE_WORKSPACE_PATH || '/tmp/overleaf-workspaces',

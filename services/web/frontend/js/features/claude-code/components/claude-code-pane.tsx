@@ -20,7 +20,7 @@ export default function ClaudeCodePane() {
   const [isCreatingSession, setIsCreatingSession] = useState(false)
 
   const createSession = useCallback(async () => {
-    if (isCreatingSession || sessionCreated) {
+    if (!projectId || isCreatingSession || sessionCreated) {
       return
     }
 

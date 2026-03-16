@@ -21,7 +21,7 @@ export function ClaudeCodeProvider({ children }: { children: React.ReactNode }) 
   const [error, setError] = useState<string | null>(null)
 
   const connect = useCallback(() => {
-    if (socket?.connected) {
+    if (!projectId || socket?.connected) {
       return
     }
 

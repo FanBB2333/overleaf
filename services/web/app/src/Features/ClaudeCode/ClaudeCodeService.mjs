@@ -1,8 +1,8 @@
 import pty from 'node-pty'
 import logger from '@overleaf/logger'
 import Settings from '@overleaf/settings'
-import fs from 'fs/promises'
-import path from 'path'
+import fs from 'node:fs/promises'
+import path from 'node:path'
 
 class ClaudeCodeService {
   constructor() {
@@ -20,8 +20,15 @@ class ClaudeCodeService {
       const workDir = path.join(Settings.claudeCode.workspaceBasePath, `workspace-${projectId}`)
       await fs.mkdir(workDir, { recursive: true })
 
-      const cliPath = Settings.claudeCode.cliPath || 'claude'
-      const ptyProcess = pty.spawn(cliPath, [], {
+      const terminalPath =
+        Settings.claudeCode.cliPath || process.env.SHELL || '/bin/bash'
+      const terminalArgs = terminalPath.endsWith('bash') ||
+        terminalPath.endsWith('zsh') ||
+        terminalPath.endsWith('sh')
+        ? ['-i']
+        : []
+
+      const ptyProcess = pty.spawn(terminalPath, terminalArgs, {
         name: 'xterm-256color',
         cols: 80,
         rows: 30,
@@ -31,6 +38,8 @@ class ClaudeCodeService {
           TERM: 'xterm-256color',
           COLORTERM: 'truecolor',
           CLAUDE_CODE_PROJECT_ID: projectId,
+          OVERLEAF_PROJECT_ID: projectId,
+          OVERLEAF_WORKDIR: workDir,
         },
       })
 
@@ -47,10 +56,15 @@ class ClaudeCodeService {
 
       ptyProcess.onExit(({ exitCode, signal }) => {
         logger.info({ projectId, exitCode, signal }, 'Claude Code PTY exited')
-        this.destroySession(projectId)
+        this.destroySession(projectId).catch(error => {
+          logger.error({ projectId, error }, 'Error destroying terminal session after PTY exit')
+        })
       })
 
-      logger.info({ projectId, userId, workDir }, 'Claude Code session created')
+      logger.info(
+        { projectId, userId, workDir, terminalPath, terminalArgs },
+        'Terminal session created'
+      )
       return session
     } catch (error) {
       logger.error({ projectId, error }, 'Failed to create Claude Code session')
@@ -124,7 +138,9 @@ class ClaudeCodeService {
       if (session.connections.size === 0) {
         const timeout = setTimeout(() => {
           logger.info({ projectId }, 'No connections, destroying session after timeout')
-          this.destroySession(projectId)
+          this.destroySession(projectId).catch(error => {
+            logger.error({ projectId, error }, 'Error destroying terminal session after idle timeout')
+          })
         }, 300000) // 5 minutes
 
         this.sessionTimeouts.set(projectId, timeout)
