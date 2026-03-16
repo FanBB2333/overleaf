@@ -2,23 +2,36 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { Terminal } from 'xterm'
 import { FitAddon } from 'xterm-addon-fit'
 import { WebLinksAddon } from 'xterm-addon-web-links'
+import { useTranslation } from 'react-i18next'
 import { useClaudeCodeContext } from '../context/claude-code-context'
 import { postJSON } from '@/infrastructure/fetch-json'
 import { debugConsole } from '@/utils/debugging'
 import { useProjectContext } from '@/shared/context/project-context'
+import OLButton from '@/shared/components/ol/ol-button'
+import { useModalsContext } from '@/features/ide-react/context/modals-context'
 import 'xterm/css/xterm.css'
 
 const TERMINAL_TITLE = 'Terminal'
 
 export default function ClaudeCodePane() {
+  const { t } = useTranslation()
   const { projectId } = useProjectContext()
   const { socket, status, error, connect } = useClaudeCodeContext()
+  const {
+    genericModalVisible,
+    genericMessageModalKind,
+    hideGenericMessageModal,
+  } = useModalsContext()
   const terminalContainerRef = useRef<HTMLDivElement>(null)
   const terminalMountRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
   const [sessionCreated, setSessionCreated] = useState(false)
   const [isCreatingSession, setIsCreatingSession] = useState(false)
+
+  const isExternalUpdateModalVisible =
+    genericModalVisible &&
+    genericMessageModalKind === 'document-updated-externally'
 
   const createSession = useCallback(async () => {
     if (!projectId || isCreatingSession || sessionCreated) {
@@ -158,11 +171,23 @@ export default function ClaudeCodePane() {
     <div className="claude-code-pane">
       <div className="claude-code-header">
         <h3>{TERMINAL_TITLE}</h3>
-        <div className="claude-code-status">
-          {status === 'connecting' && <span>Connecting...</span>}
-          {status === 'connected' && <span className="status-connected">Connected</span>}
-          {status === 'disconnected' && <span>Disconnected</span>}
-          {status === 'error' && <span className="status-error">Error: {error}</span>}
+        <div className="claude-code-header-actions">
+          <div className="claude-code-status">
+            {status === 'connecting' && <span>Connecting...</span>}
+            {status === 'connected' && <span className="status-connected">Connected</span>}
+            {status === 'disconnected' && <span>Disconnected</span>}
+            {status === 'error' && <span className="status-error">Error: {error}</span>}
+          </div>
+          {isExternalUpdateModalVisible && (
+            <OLButton
+              variant="secondary"
+              size="sm"
+              onClick={hideGenericMessageModal}
+              className="claude-code-dismiss-modal-button claude-code-dismiss-modal-button-floating"
+            >
+              {t('close_dialog')}
+            </OLButton>
+          )}
         </div>
       </div>
       <div className="claude-code-terminal-shell" ref={terminalContainerRef}>

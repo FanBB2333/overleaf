@@ -247,7 +247,8 @@ export const EditorManagerProvider: FC<React.PropsWithChildren> = ({
         }
         showGenericMessageModal(
           t('document_updated_externally'),
-          t('document_updated_externally_detail')
+          t('document_updated_externally_detail'),
+          { kind: 'document-updated-externally' }
         )
       })
     },

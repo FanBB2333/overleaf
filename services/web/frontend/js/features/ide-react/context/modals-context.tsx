@@ -16,12 +16,21 @@ import GenericConfirmModal, {
   GenericConfirmModalOwnProps,
 } from '../components/modals/generic-confirm-modal'
 
+export type GenericMessageModalKind = 'document-updated-externally'
+
+type ShowGenericMessageModalOptions = {
+  kind?: GenericMessageModalKind
+}
+
 type ModalsContextValue = {
   genericModalVisible: boolean
+  genericMessageModalKind: GenericMessageModalKind | null
+  hideGenericMessageModal: () => void
   showGenericConfirmModal: (data: GenericConfirmModalOwnProps) => void
   showGenericMessageModal: (
     title: GenericMessageModalOwnProps['title'],
-    message: GenericMessageModalOwnProps['message']
+    message: GenericMessageModalOwnProps['message'],
+    options?: ShowGenericMessageModalOptions
   ) => void
   showOutOfSyncModal: (
     editorContent: OutOfSyncModalProps['editorContent']
@@ -35,6 +44,8 @@ export const ModalsContextProvider: FC<React.PropsWithChildren> = ({
 }) => {
   const [showGenericModal, setShowGenericModal] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [genericMessageModalKind, setGenericMessageModalKind] =
+    useState<GenericMessageModalKind | null>(null)
   const [genericMessageModalData, setGenericMessageModalData] =
     useState<GenericMessageModalOwnProps>({ title: '', message: '' })
   const [genericConfirmModalData, setGenericConfirmModalData] =
@@ -52,6 +63,7 @@ export const ModalsContextProvider: FC<React.PropsWithChildren> = ({
 
   const handleHideGenericModal = useCallback(() => {
     setShowGenericModal(false)
+    setGenericMessageModalKind(null)
   }, [])
 
   const handleHideGenericConfirmModal = useCallback(() => {
@@ -66,9 +78,11 @@ export const ModalsContextProvider: FC<React.PropsWithChildren> = ({
   const showGenericMessageModal = useCallback(
     (
       title: GenericMessageModalOwnProps['title'],
-      message: GenericMessageModalOwnProps['message']
+      message: GenericMessageModalOwnProps['message'],
+      options?: ShowGenericMessageModalOptions
     ) => {
       setGenericMessageModalData({ title, message })
+      setGenericMessageModalKind(options?.kind ?? null)
       setShowGenericModal(true)
     },
     []
@@ -96,12 +110,16 @@ export const ModalsContextProvider: FC<React.PropsWithChildren> = ({
       showGenericMessageModal,
       showGenericConfirmModal,
       genericModalVisible: showGenericModal,
+      genericMessageModalKind,
+      hideGenericMessageModal: handleHideGenericModal,
       showOutOfSyncModal,
     }),
     [
       showGenericMessageModal,
       showGenericConfirmModal,
       showGenericModal,
+      genericMessageModalKind,
+      handleHideGenericModal,
       showOutOfSyncModal,
     ]
   )

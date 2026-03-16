@@ -9,6 +9,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   padding: 8px 12px;
   background-color: #252526;
   border-bottom: 1px solid #3e3e42;
@@ -19,6 +20,13 @@
     font-weight: 600;
     color: #ccc;
   }
+}
+
+.claude-code-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .claude-code-status {
@@ -32,6 +40,18 @@
   .status-error {
     color: #f48771;
   }
+}
+
+.claude-code-dismiss-modal-button {
+  white-space: nowrap;
+}
+
+.claude-code-dismiss-modal-button-floating {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 1066;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 25%);
 }
 
 .claude-code-terminal-shell {
