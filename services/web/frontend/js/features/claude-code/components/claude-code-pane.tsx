@@ -13,7 +13,8 @@ const TERMINAL_TITLE = 'Terminal'
 export default function ClaudeCodePane() {
   const { projectId } = useProjectContext()
   const { socket, status, error, connect } = useClaudeCodeContext()
-  const terminalRef = useRef<HTMLDivElement>(null)
+  const terminalContainerRef = useRef<HTMLDivElement>(null)
+  const terminalMountRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
   const [sessionCreated, setSessionCreated] = useState(false)
@@ -38,8 +39,26 @@ export default function ClaudeCodePane() {
     }
   }, [projectId, isCreatingSession, sessionCreated, connect])
 
+  const syncTerminalSize = useCallback(() => {
+    const terminal = xtermRef.current
+    const fitAddon = fitAddonRef.current
+
+    if (!terminal || !fitAddon) {
+      return
+    }
+
+    fitAddon.fit()
+
+    if (socket?.connected) {
+      socket.emit('terminal-resize', {
+        cols: terminal.cols,
+        rows: terminal.rows,
+      })
+    }
+  }, [socket])
+
   useEffect(() => {
-    if (!terminalRef.current) {
+    if (!terminalContainerRef.current || !terminalMountRef.current) {
       return
     }
 
@@ -59,26 +78,22 @@ export default function ClaudeCodePane() {
 
     terminal.loadAddon(fitAddon)
     terminal.loadAddon(webLinksAddon)
-    terminal.open(terminalRef.current)
-
-    fitAddon.fit()
+    terminal.open(terminalMountRef.current)
 
     xtermRef.current = terminal
     fitAddonRef.current = fitAddon
 
-    const resizeObserver = new ResizeObserver(() => {
-      if (fitAddonRef.current) {
-        fitAddonRef.current.fit()
-        if (socket?.connected) {
-          socket.emit('terminal-resize', {
-            cols: terminal.cols,
-            rows: terminal.rows,
-          })
-        }
-      }
+    requestAnimationFrame(() => {
+      syncTerminalSize()
     })
 
-    resizeObserver.observe(terminalRef.current)
+    const resizeObserver = new ResizeObserver(() => {
+      requestAnimationFrame(() => {
+        syncTerminalSize()
+      })
+    })
+
+    resizeObserver.observe(terminalContainerRef.current)
 
     return () => {
       resizeObserver.disconnect()
@@ -86,7 +101,7 @@ export default function ClaudeCodePane() {
       xtermRef.current = null
       fitAddonRef.current = null
     }
-  }, [socket])
+  }, [syncTerminalSize])
 
   useEffect(() => {
     if (!socket || !xtermRef.current) {
@@ -100,7 +115,7 @@ export default function ClaudeCodePane() {
     }
 
     const handleSessionStarted = () => {
-      terminal.writeln('\r\n\x1b[32mTerminal session started\x1b[0m\r\n')
+      syncTerminalSize()
     }
 
     const handleSessionError = ({ error: errorMsg }: { error: string }) => {
@@ -112,6 +127,7 @@ export default function ClaudeCodePane() {
     socket.on('session-error', handleSessionError)
 
     const startSession = () => {
+      syncTerminalSize()
       socket.emit('start-session')
     }
 
@@ -132,7 +148,7 @@ export default function ClaudeCodePane() {
       socket.off('session-error', handleSessionError)
       disposable.dispose()
     }
-  }, [socket])
+  }, [socket, syncTerminalSize])
 
   useEffect(() => {
     createSession()
@@ -149,7 +165,9 @@ export default function ClaudeCodePane() {
           {status === 'error' && <span className="status-error">Error: {error}</span>}
         </div>
       </div>
-      <div className="claude-code-terminal" ref={terminalRef} />
+      <div className="claude-code-terminal-shell" ref={terminalContainerRef}>
+        <div className="claude-code-terminal" ref={terminalMountRef} />
+      </div>
     </div>
   )
 }

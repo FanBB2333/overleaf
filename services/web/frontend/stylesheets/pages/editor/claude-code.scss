@@ -17,7 +17,7 @@
     margin: 0;
     font-size: 14px;
     font-weight: 600;
-    color: #cccccc;
+    color: #ccc;
   }
 }
 
@@ -34,8 +34,17 @@
   }
 }
 
-.claude-code-terminal {
+.claude-code-terminal-shell {
   flex: 1;
-  overflow: hidden;
+  min-height: 0;
+  min-width: 0;
   padding: 8px;
+}
+
+.claude-code-terminal {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  min-height: 0;
+  min-width: 0;
 }
