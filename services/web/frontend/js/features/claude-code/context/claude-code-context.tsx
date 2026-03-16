@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { io, Socket } from 'socket.io-client'
-import { useIdeContext } from '@/shared/context/ide-context'
-import getMeta from '@/utils/meta'
+import { useProjectContext } from '@/shared/context/project-context'
 
 type ClaudeCodeContextValue = {
   socket: Socket | null
@@ -16,7 +15,7 @@ const ClaudeCodeContext = createContext<ClaudeCodeContextValue | undefined>(
 )
 
 export function ClaudeCodeProvider({ children }: { children: React.ReactNode }) {
-  const { projectId } = useIdeContext()
+  const { projectId } = useProjectContext()
   const [socket, setSocket] = useState<Socket | null>(null)
   const [status, setStatus] = useState<ClaudeCodeContextValue['status']>('disconnected')
   const [error, setError] = useState<string | null>(null)
@@ -30,7 +29,7 @@ export function ClaudeCodeProvider({ children }: { children: React.ReactNode }) 
     setError(null)
 
     const newSocket = io('/claude-code', {
-      path: '/socket.io',
+      path: '/terminal/socket.io',
       query: { projectId },
       transports: ['websocket', 'polling'],
     })

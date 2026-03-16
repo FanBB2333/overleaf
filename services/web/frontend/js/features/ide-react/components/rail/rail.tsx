@@ -25,7 +25,6 @@ import { useCommandProvider } from '@/features/ide-react/hooks/use-command-provi
 import RailHelpDropdown from './rail-help-dropdown'
 import RailTab from './rail-tab'
 import RailActionElement, { RailAction } from './rail-action-element'
-import { RailElement } from '@/features/ide-react/util/rail-types'
 import RailPanel from './rail-panel'
 import RailResizeHandle from './rail-resize-handle'
 import RailModals from './rail-modals'
@@ -38,6 +37,8 @@ import EditorTourGotQuestionsTooltip from '@/features/ide-redesign/components/ed
 import { shouldIncludeElement } from '@/features/ide-react/util/rail-utils'
 import { useEditorContext } from '@/shared/context/editor-context'
 import useEventListener from '@/shared/hooks/use-event-listener'
+import MaterialIcon from '@/shared/components/material-icon'
+import { CustomRailTabIcon, RailElement } from '@/features/ide-react/util/rail-types'
 
 const moduleRailEntries = (
   importOverleafModules('railEntries') as {
@@ -59,6 +60,16 @@ const moduleRailPopovers = (
     path: string
   }[]
 ).map(({ import: { default: element } }) => element)
+
+const TerminalRailIcon: CustomRailTabIcon = ({ title }) => (
+  // `terminal` is not available in the unfilled material-symbols slice,
+  // so always render the filled icon to avoid the text fallback glyph.
+  <MaterialIcon
+    type="terminal"
+    className="ide-rail-tab-link-icon"
+    accessibilityLabel={title}
+  />
+)
 
 export const RailLayout = () => {
   const { sendEvent } = useEditorAnalytics()
@@ -142,8 +153,8 @@ export const RailLayout = () => {
       },
       {
         key: 'claude-code',
-        icon: 'terminal',
-        title: 'Claude Code',
+        icon: TerminalRailIcon,
+        title: 'Terminal',
         component: <ClaudeCodePane />,
         hide: !getMeta('ol-capabilities')?.includes('claude-code'),
       },

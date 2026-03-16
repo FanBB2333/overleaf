@@ -3,13 +3,15 @@ import { Terminal } from 'xterm'
 import { FitAddon } from 'xterm-addon-fit'
 import { WebLinksAddon } from 'xterm-addon-web-links'
 import { useClaudeCodeContext } from '../context/claude-code-context'
-import { useIdeContext } from '@/shared/context/ide-context'
 import { postJSON } from '@/infrastructure/fetch-json'
 import { debugConsole } from '@/utils/debugging'
+import { useProjectContext } from '@/shared/context/project-context'
 import 'xterm/css/xterm.css'
 
+const TERMINAL_TITLE = 'Terminal'
+
 export default function ClaudeCodePane() {
-  const { projectId } = useIdeContext()
+  const { projectId } = useProjectContext()
   const { socket, status, error, connect } = useClaudeCodeContext()
   const terminalRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<Terminal | null>(null)
@@ -30,7 +32,7 @@ export default function ClaudeCodePane() {
         connect()
       }
     } catch (err) {
-      debugConsole.error('Failed to create Claude Code session:', err)
+      debugConsole.error('Failed to create terminal session:', err)
     } finally {
       setIsCreatingSession(false)
     }
@@ -98,7 +100,7 @@ export default function ClaudeCodePane() {
     }
 
     const handleSessionStarted = () => {
-      terminal.writeln('\r\n\x1b[32mClaude Code session started\x1b[0m\r\n')
+      terminal.writeln('\r\n\x1b[32mTerminal session started\x1b[0m\r\n')
     }
 
     const handleSessionError = ({ error: errorMsg }: { error: string }) => {
@@ -132,7 +134,7 @@ export default function ClaudeCodePane() {
   return (
     <div className="claude-code-pane">
       <div className="claude-code-header">
-        <h3>Claude Code</h3>
+        <h3>{TERMINAL_TITLE}</h3>
         <div className="claude-code-status">
           {status === 'connecting' && <span>Connecting...</span>}
           {status === 'connected' && <span className="status-connected">Connected</span>}

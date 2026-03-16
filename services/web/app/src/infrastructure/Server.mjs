@@ -356,7 +356,7 @@ const server = http.createServer(app)
 
 // Setup Socket.IO for Claude Code
 const io = new SocketIOServer(server, {
-  path: '/socket.io',
+  path: '/terminal/socket.io',
   cors: {
     origin: Settings.siteUrl,
     credentials: true,
