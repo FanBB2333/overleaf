@@ -16,6 +16,9 @@ const PROJECT_SYNC_POLL_INTERVAL_MS = 1000
 const WORKSPACE_SYNC_DEBOUNCE_MS = 200
 const WORKSPACE_EVENT_IGNORE_MS = 2000
 const TERMINAL_SYNC_SOURCE = 'terminal-workspace'
+const DEFAULT_TERMINAL_PATH = '/usr/local/bin:/usr/bin:/bin'
+const DEFAULT_TERMINAL_HOME = '/home/node'
+const USER_NPM_GLOBAL_DIRNAME = '.npm-global'
 const IGNORED_WORKSPACE_PATHS = new Set([
   '/.bash_history',
   '/.zsh_history',
@@ -51,6 +54,7 @@ class ClaudeCodeService {
       const workDir = path.join(Settings.claudeCode.workspaceBasePath, `workspace-${projectId}`)
       await fs.mkdir(workDir, { recursive: true })
       const workspace = await this.populateWorkspace(projectId, workDir)
+      const terminalEnv = await this.buildTerminalEnv(projectId, workDir)
 
       const terminalPath =
         Settings.claudeCode.cliPath || process.env.SHELL || '/bin/bash'
@@ -65,14 +69,7 @@ class ClaudeCodeService {
         cols: 80,
         rows: 30,
         cwd: workDir,
-        env: {
-          ...process.env,
-          TERM: 'xterm-256color',
-          COLORTERM: 'truecolor',
-          CLAUDE_CODE_PROJECT_ID: projectId,
-          OVERLEAF_PROJECT_ID: projectId,
-          OVERLEAF_WORKDIR: workDir,
-        },
+        env: terminalEnv,
       })
 
       const session = {
@@ -129,7 +126,14 @@ class ClaudeCodeService {
       })
 
       logger.info(
-        { projectId, userId, workDir, terminalPath, terminalArgs },
+        {
+          projectId,
+          userId,
+          workDir,
+          terminalPath,
+          terminalArgs,
+          npmGlobalPrefix: terminalEnv.NPM_CONFIG_PREFIX,
+        },
         'Terminal session created'
       )
       return session
@@ -295,6 +299,33 @@ class ClaudeCodeService {
   getWorkspacePath(workDir, projectPath) {
     const relativePath = this.normalizeProjectPath(projectPath).replace(/^\/+/, '')
     return path.join(workDir, relativePath)
+  }
+
+  async buildTerminalEnv(projectId, workDir) {
+    const terminalHome = process.env.HOME || DEFAULT_TERMINAL_HOME
+    const npmGlobalPrefix = path.join(terminalHome, USER_NPM_GLOBAL_DIRNAME)
+    const npmGlobalBin = path.join(npmGlobalPrefix, 'bin')
+
+    await fs.mkdir(npmGlobalBin, { recursive: true })
+
+    const terminalEnv = {
+      ...process.env,
+      HOME: terminalHome,
+      PATH: `${npmGlobalBin}:${process.env.PATH || DEFAULT_TERMINAL_PATH}`,
+      TERM: 'xterm-256color',
+      COLORTERM: 'truecolor',
+      NPM_CONFIG_PREFIX: npmGlobalPrefix,
+      npm_config_prefix: npmGlobalPrefix,
+      CLAUDE_CODE_PROJECT_ID: projectId,
+      OVERLEAF_PROJECT_ID: projectId,
+      OVERLEAF_WORKDIR: workDir,
+    }
+
+    delete terminalEnv.NODE_OPTIONS
+    delete terminalEnv.NODE_INSPECT_RESUME_ON_START
+    delete terminalEnv.VSCODE_INSPECTOR_OPTIONS
+
+    return terminalEnv
   }
 
   getProjectPath(workDir, workspacePath) {
