@@ -9,9 +9,18 @@ import { debugConsole } from '@/utils/debugging'
 import { useProjectContext } from '@/shared/context/project-context'
 import OLButton from '@/shared/components/ol/ol-button'
 import { useModalsContext } from '@/features/ide-react/context/modals-context'
+import { useEditorManagerContext } from '@/features/ide-react/context/editor-manager-context'
+import MaterialIcon from '@/shared/components/material-icon'
 import 'xterm/css/xterm.css'
 
 const TERMINAL_TITLE = 'Terminal'
+
+const TERMINAL_THEMES: Record<string, { background: string; foreground: string; cursor?: string }> = {
+  dark: { background: '#1e1e1e', foreground: '#d4d4d4' },
+  'solarized-dark': { background: '#002b36', foreground: '#839496', cursor: '#93a1a1' },
+  monokai: { background: '#272822', foreground: '#f8f8f2', cursor: '#f8f8f0' },
+  dracula: { background: '#282a36', foreground: '#f8f8f2', cursor: '#f8f8f2' },
+}
 
 export default function ClaudeCodePane() {
   const { t } = useTranslation()
@@ -22,12 +31,17 @@ export default function ClaudeCodePane() {
     genericMessageModalKind,
     hideGenericMessageModal,
   } = useModalsContext()
+  const { setIgnoringExternalUpdates } = useEditorManagerContext()
   const terminalContainerRef = useRef<HTMLDivElement>(null)
   const terminalMountRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
   const [sessionCreated, setSessionCreated] = useState(false)
   const [isCreatingSession, setIsCreatingSession] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [fontSize, setFontSize] = useState(14)
+  const [themeName, setThemeName] = useState('dark')
+  const [ignoreExternalUpdates, setIgnoreExternalUpdates] = useState(false)
 
   const isExternalUpdateModalVisible =
     genericModalVisible &&
@@ -70,19 +84,48 @@ export default function ClaudeCodePane() {
     }
   }, [socket])
 
+  // Auto-dismiss external update modal when toggle is enabled
+  useEffect(() => {
+    if (ignoreExternalUpdates && isExternalUpdateModalVisible) {
+      hideGenericMessageModal()
+    }
+  }, [ignoreExternalUpdates, isExternalUpdateModalVisible, hideGenericMessageModal])
+
+  // Sync ignoring external updates state with editor manager
+  useEffect(() => {
+    setIgnoringExternalUpdates(ignoreExternalUpdates)
+  }, [ignoreExternalUpdates, setIgnoringExternalUpdates])
+
+  // Apply font size changes to existing terminal
+  useEffect(() => {
+    const terminal = xtermRef.current
+    if (terminal) {
+      terminal.options.fontSize = fontSize
+      fitAddonRef.current?.fit()
+    }
+  }, [fontSize])
+
+  // Apply theme changes to existing terminal
+  useEffect(() => {
+    const terminal = xtermRef.current
+    const theme = TERMINAL_THEMES[themeName] || TERMINAL_THEMES.dark
+    if (terminal) {
+      terminal.options.theme = theme
+    }
+  }, [themeName])
+
   useEffect(() => {
     if (!terminalContainerRef.current || !terminalMountRef.current) {
       return
     }
 
+    const theme = TERMINAL_THEMES[themeName] || TERMINAL_THEMES.dark
+
     const terminal = new Terminal({
       cursorBlink: true,
-      fontSize: 14,
+      fontSize,
       fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-      theme: {
-        background: '#1e1e1e',
-        foreground: '#d4d4d4',
-      },
+      theme,
       scrollback: 10000,
     })
 
@@ -178,7 +221,7 @@ export default function ClaudeCodePane() {
             {status === 'disconnected' && <span>Disconnected</span>}
             {status === 'error' && <span className="status-error">Error: {error}</span>}
           </div>
-          {isExternalUpdateModalVisible && (
+          {isExternalUpdateModalVisible && !ignoreExternalUpdates && (
             <OLButton
               variant="secondary"
               size="sm"
@@ -192,6 +235,72 @@ export default function ClaudeCodePane() {
       </div>
       <div className="claude-code-terminal-shell" ref={terminalContainerRef}>
         <div className="claude-code-terminal" ref={terminalMountRef} />
+      </div>
+      {/* Settings Panel */}
+      <div className="claude-code-settings-panel">
+        <div
+          className="claude-code-settings-toggle"
+          onClick={() => setSettingsOpen(!settingsOpen)}
+        >
+          <MaterialIcon
+            type={settingsOpen ? 'expand_more' : 'chevron_right'}
+            className="ide-rail-tab-link-icon"
+          />
+          <span>Settings</span>
+        </div>
+        {settingsOpen && (
+          <div className="claude-code-settings-content">
+            {/* Font Size */}
+            <div className="claude-code-setting-row">
+              <label>Font Size</label>
+              <div className="claude-code-setting-controls">
+                <button
+                  className="claude-code-font-size-btn"
+                  onClick={() => setFontSize(prev => Math.max(8, prev - 1))}
+                >
+                  −
+                </button>
+                <span className="claude-code-font-size-value">{fontSize}</span>
+                <button
+                  className="claude-code-font-size-btn"
+                  onClick={() => setFontSize(prev => Math.min(24, prev + 1))}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            {/* Theme */}
+            <div className="claude-code-setting-row">
+              <label>Theme</label>
+              <select
+                className="claude-code-theme-select"
+                value={themeName}
+                onChange={e => setThemeName(e.target.value)}
+              >
+                <option value="dark">Dark</option>
+                <option value="solarized-dark">Solarized Dark</option>
+                <option value="monokai">Monokai</option>
+                <option value="dracula">Dracula</option>
+              </select>
+            </div>
+            {/* Ignore External Updates Toggle */}
+            <div className="claude-code-setting-row">
+              <label>Ignore external update alerts</label>
+              <div className="claude-code-toggle-switch">
+                <input
+                  type="checkbox"
+                  id="ignore-external-updates"
+                  checked={ignoreExternalUpdates}
+                  onChange={e => setIgnoreExternalUpdates(e.target.checked)}
+                />
+                <span
+                  className="claude-code-toggle-slider"
+                  onClick={() => setIgnoreExternalUpdates(!ignoreExternalUpdates)}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

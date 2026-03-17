@@ -308,6 +308,10 @@ class ClaudeCodeService {
 
     await fs.mkdir(npmGlobalBin, { recursive: true })
 
+    // Use a two-line prompt to avoid long lines wrapping
+    const shortWorkDir = workDir.split('/').pop() || workDir
+    const ps1TwoLine = `\\[\\033[1;32m\\]\\u@\\h\\[\\033[0m\\]:\\[\\033[1;34m\\]\\w\\[\\033[0m\\]\n\\$ `
+
     const terminalEnv = {
       ...process.env,
       HOME: terminalHome,
@@ -319,6 +323,8 @@ class ClaudeCodeService {
       CLAUDE_CODE_PROJECT_ID: projectId,
       OVERLEAF_PROJECT_ID: projectId,
       OVERLEAF_WORKDIR: workDir,
+      PS1: ps1TwoLine,
+      PROMPT_COMMAND: '',
     }
 
     delete terminalEnv.NODE_OPTIONS

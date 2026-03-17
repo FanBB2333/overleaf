@@ -81,3 +81,152 @@
   min-height: 0;
   min-width: 0;
 }
+
+// Settings panel
+.claude-code-settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 12px;
+  background-color: #252526;
+  border-top: 1px solid #3e3e42;
+  min-height: 0;
+  flex-shrink: 0;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.claude-code-settings-toggle {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 2px 0;
+  gap: 6px;
+  color: #ccc;
+  font-size: 12px;
+  user-select: none;
+
+  &:hover {
+    color: #fff;
+  }
+}
+
+.claude-code-settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.claude-code-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 0;
+
+  label {
+    font-size: 12px;
+    color: #ccc;
+    margin: 0;
+    white-space: nowrap;
+  }
+}
+
+.claude-code-setting-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.claude-code-font-size-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid #3e3e42;
+  border-radius: 3px;
+  background-color: #333;
+  color: #ccc;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+
+  &:hover {
+    background-color: #444;
+    color: #fff;
+  }
+}
+
+.claude-code-font-size-value {
+  font-size: 12px;
+  color: #ccc;
+  min-width: 28px;
+  text-align: center;
+}
+
+.claude-code-theme-select {
+  font-size: 12px;
+  padding: 2px 6px;
+  background-color: #333;
+  color: #ccc;
+  border: 1px solid #3e3e42;
+  border-radius: 3px;
+  cursor: pointer;
+  outline: none;
+
+  &:hover {
+    background-color: #444;
+  }
+
+  &:focus {
+    border-color: #007acc;
+  }
+}
+
+// Toggle switch
+.claude-code-toggle-switch {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  flex-shrink: 0;
+
+  input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+}
+
+.claude-code-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #555;
+  border-radius: 9px;
+  transition: background-color 0.2s;
+
+  &::before {
+    content: '';
+    position: absolute;
+    height: 14px;
+    width: 14px;
+    left: 2px;
+    bottom: 2px;
+    background-color: #ccc;
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+
+  input:checked + & {
+    background-color: #007acc;
+  }
+
+  input:checked + &::before {
+    transform: translateX(14px);
+  }
+}
