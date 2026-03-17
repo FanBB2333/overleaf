@@ -55,6 +55,7 @@ class ClaudeCodeService {
       await fs.mkdir(workDir, { recursive: true })
       const workspace = await this.populateWorkspace(projectId, workDir)
       const terminalEnv = await this.buildTerminalEnv(projectId, workDir)
+      await this.ensureShellRc(terminalEnv.HOME)
 
       const terminalPath =
         Settings.claudeCode.cliPath || process.env.SHELL || '/bin/bash'
@@ -332,6 +333,39 @@ class ClaudeCodeService {
     delete terminalEnv.VSCODE_INSPECTOR_OPTIONS
 
     return terminalEnv
+  }
+
+  async ensureShellRc(homeDir) {
+    const bashrcPath = path.join(homeDir, '.bashrc')
+    try {
+      await fs.access(bashrcPath)
+      // .bashrc already exists — check if our marker is present
+      const existing = await fs.readFile(bashrcPath, 'utf8')
+      if (existing.includes('# overleaf-terminal-aliases')) {
+        return
+      }
+      // Append aliases to existing .bashrc
+      await fs.appendFile(bashrcPath, '\n' + this.getShellRcContent())
+    } catch {
+      // File doesn't exist, create it
+      await fs.writeFile(bashrcPath, this.getShellRcContent(), 'utf8')
+    }
+  }
+
+  getShellRcContent() {
+    return [
+      '# overleaf-terminal-aliases',
+      "alias ll='ls -alF'",
+      "alias la='ls -A'",
+      "alias l='ls -CF'",
+      "alias ls='ls --color=auto'",
+      "alias grep='grep --color=auto'",
+      "alias fgrep='fgrep --color=auto'",
+      "alias egrep='egrep --color=auto'",
+      "alias ..='cd ..'",
+      "alias ...='cd ../..'",
+      '',
+    ].join('\n')
   }
 
   getProjectPath(workDir, workspacePath) {
