@@ -168,7 +168,7 @@ export default function ClaudeCodePane() {
   }, [createSession])
 
   return (
-    <div className="claude-code-pane">
+    <div className="ide-react-editor-sidebar claude-code-pane">
       <div className="claude-code-header">
         <h3>{TERMINAL_TITLE}</h3>
         <div className="claude-code-header-actions">
