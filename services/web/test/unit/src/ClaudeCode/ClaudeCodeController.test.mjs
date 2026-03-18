@@ -1,16 +1,11 @@
-import Path from "node:path";
-import { createRequire } from "node:module";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import MockRequest from "../helpers/MockRequest.mjs";
 import MockResponse from "../helpers/MockResponse.mjs";
 
 const modulePath =
   "../../../../app/src/Features/ClaudeCode/ClaudeCodeController.mjs";
-const require = createRequire(import.meta.url);
-const tokenModulePath = Path.join(
-  import.meta.dirname,
-  "../../../../../../server-ce/file-editor/token.js",
-);
+const tokenModulePath =
+  "../../../../app/src/Features/ClaudeCode/fileEditorToken.mjs";
 
 describe("ClaudeCodeController", function () {
   beforeEach(async function (ctx) {
@@ -57,7 +52,7 @@ describe("ClaudeCodeController", function () {
     ctx.controller = (await import(modulePath)).default;
     ctx.req = new MockRequest(vi);
     ctx.res = new MockResponse(vi);
-    ctx.verifyFileEditorToken = require(tokenModulePath).verifyFileEditorToken;
+    ctx.verifyFileEditorToken = (await import(tokenModulePath)).verifyFileEditorToken;
   });
 
   afterEach(function (ctx) {

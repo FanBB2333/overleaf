@@ -35,6 +35,57 @@ function createFileEditorToken(
   return `${encodedPayload}.${signature}`;
 }
 
+function verifyFileEditorToken(token) {
+  if (!token || typeof token !== "string") {
+    return { valid: false, error: "missing token" };
+  }
+
+  const separatorIndex = token.lastIndexOf(".");
+  if (separatorIndex <= 0) {
+    return { valid: false, error: "malformed token" };
+  }
+
+  const encodedPayload = token.slice(0, separatorIndex);
+  const providedSignature = token.slice(separatorIndex + 1);
+
+  let decodedPayload;
+  let providedSignatureBuffer;
+
+  try {
+    decodedPayload = JSON.parse(
+      Buffer.from(encodedPayload, "base64url").toString("utf8"),
+    );
+    providedSignatureBuffer = Buffer.from(providedSignature, "base64url");
+  } catch {
+    return { valid: false, error: "malformed token" };
+  }
+
+  const expectedSignatureBuffer = crypto
+    .createHmac("sha256", getFileEditorSecret())
+    .update(encodedPayload)
+    .digest();
+
+  if (
+    providedSignatureBuffer.length !== expectedSignatureBuffer.length ||
+    !crypto.timingSafeEqual(providedSignatureBuffer, expectedSignatureBuffer)
+  ) {
+    return { valid: false, error: "invalid token" };
+  }
+
+  if (decodedPayload.scope !== "file-editor") {
+    return { valid: false, error: "invalid scope" };
+  }
+
+  if (
+    typeof decodedPayload.exp !== "number" ||
+    decodedPayload.exp <= Date.now()
+  ) {
+    return { valid: false, error: "expired token" };
+  }
+
+  return { valid: true, payload: decodedPayload };
+}
+
 function buildFileEditorUrl({ path, token, basePath = "/file-editor/" }) {
   const params = new URLSearchParams();
   if (path) {
@@ -49,4 +100,5 @@ export {
   buildFileEditorUrl,
   createFileEditorToken,
   getFileEditorSecret,
+  verifyFileEditorToken,
 };

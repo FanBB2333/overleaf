@@ -67,6 +67,7 @@ import ClsiCacheController from "./Features/Compile/ClsiCacheController.mjs";
 import AsyncLocalStorage from "./infrastructure/AsyncLocalStorage.mjs";
 import AIController from "./Features/AI/AIController.mjs";
 import ClaudeCodeController from "./Features/ClaudeCode/ClaudeCodeController.mjs";
+import FileEditorController from "./Features/ClaudeCode/FileEditorController.mjs";
 
 const { renderUnsupportedBrowserPage, unsupportedBrowserMiddleware } =
   UnsupportedBrowserMiddleware;
@@ -589,6 +590,14 @@ async function initialize(webRouter, privateApiRouter, publicApiRouter) {
     );
   }
   if (Features.hasFeature("claude-code")) {
+    webRouter.csrf.disableDefaultCsrfProtection(
+      "/file-editor/api/write",
+      "POST",
+    );
+    webRouter.get("/file-editor", FileEditorController.renderPage);
+    webRouter.get("/file-editor/", FileEditorController.renderPage);
+    webRouter.get("/file-editor/api/read", FileEditorController.readFile);
+    webRouter.post("/file-editor/api/write", FileEditorController.writeFile);
     webRouter.post(
       "/project/:Project_id/claude-code/file-editor-link",
       AuthenticationController.requireLogin(),

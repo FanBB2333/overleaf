@@ -10,11 +10,6 @@ module.exports = merge(base, {
     },
     proxy: [
       {
-        context: pathname =>
-          pathname === '/file-editor' || pathname.startsWith('/file-editor/'),
-        target: 'http://file-editor:3091',
-      },
-      {
         context: '/terminal/socket.io/**',
         target: 'http://web:3000',
         ws: true,

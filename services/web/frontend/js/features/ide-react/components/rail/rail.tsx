@@ -37,7 +37,6 @@ import EditorTourGotQuestionsTooltip from '@/features/ide-redesign/components/ed
 import { shouldIncludeElement } from '@/features/ide-react/util/rail-utils'
 import { useEditorContext } from '@/shared/context/editor-context'
 import useEventListener from '@/shared/hooks/use-event-listener'
-import MaterialIcon from '@/shared/components/material-icon'
 import { CustomRailTabIcon, RailElement } from '@/features/ide-react/util/rail-types'
 
 const moduleRailEntries = (
@@ -62,13 +61,10 @@ const moduleRailPopovers = (
 ).map(({ import: { default: element } }) => element)
 
 const TerminalRailIcon: CustomRailTabIcon = ({ title }) => (
-  // `terminal` is not available in the unfilled material-symbols slice,
-  // so always render the filled icon to avoid the text fallback glyph.
-  <MaterialIcon
-    type="terminal"
-    className="ide-rail-tab-link-icon"
-    accessibilityLabel={title}
-  />
+  <>
+    <span className="fa fa-terminal ide-rail-tab-link-icon" aria-hidden="true" />
+    <span className="visually-hidden">{title}</span>
+  </>
 )
 
 export const RailLayout = () => {
