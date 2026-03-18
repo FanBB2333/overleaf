@@ -2,13 +2,10 @@ import ClaudeCodeService from "./ClaudeCodeService.mjs";
 import SessionManager from "../Authentication/SessionManager.mjs";
 import logger from "@overleaf/logger";
 import path from "node:path";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
-const {
+import {
   buildFileEditorUrl,
   createFileEditorToken,
-} = require("../../../../../../server-ce/file-editor/token.js");
+} from "./fileEditorToken.mjs";
 
 const DEFAULT_TERMINAL_HOME = "/home/node";
 

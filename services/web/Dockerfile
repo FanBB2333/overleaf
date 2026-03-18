@@ -60,6 +60,13 @@ FROM deps AS dev
 
 ARG SENTRY_RELEASE
 ENV SENTRY_RELEASE=$SENTRY_RELEASE
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends less nano sudo vim-tiny \
+    && ln -sf /usr/bin/vim.tiny /usr/local/bin/vim \
+    && rm -rf /var/lib/apt/lists/*
+RUN usermod -aG sudo node \
+    && echo "node ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/node \
+    && chmod 0440 /etc/sudoers.d/node
 COPY libraries/access-token-encryptor/ /overleaf/libraries/access-token-encryptor/
 COPY libraries/eslint-plugin/ /overleaf/libraries/eslint-plugin/
 COPY libraries/fetch-utils/ /overleaf/libraries/fetch-utils/

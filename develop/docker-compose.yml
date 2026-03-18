@@ -139,6 +139,25 @@ services:
     volumes:
       - redis-data:/data
 
+  file-editor:
+    image: node:24.13.0
+    user: root
+    working_dir: /overleaf/server-ce/file-editor
+    env_file:
+      - dev.env
+    environment:
+      - CLAUDE_CODE_HOME=/overleaf/services/web/data/claude-code-home
+      - FILE_EDITOR_HOST=0.0.0.0
+    command:
+      [
+        "sh",
+        "-lc",
+        "mkdir -p /overleaf/services/web/data/claude-code-home && chown -R node:node /overleaf/services/web/data && exec su node -s /bin/sh -c 'node app.js'",
+      ]
+    volumes:
+      - ../server-ce/file-editor:/overleaf/server-ce/file-editor:ro
+      - web-data:/overleaf/services/web/data
+
   web:
     build:
       context: ..
@@ -153,7 +172,14 @@ services:
       - NODE_ENV=development
       - OVERLEAF_ALLOW_PUBLIC_ACCESS=true
       - CLAUDE_CODE_ENABLED=true
-    command: ["node", "app.mjs"]
+      - CLAUDE_CODE_HOME=/overleaf/services/web/data/claude-code-home
+    user: root
+    command:
+      [
+        "sh",
+        "-lc",
+        "mkdir -p /overleaf/services/web/data/claude-code-home && chown -R node:node /overleaf/services/web/data && exec su node -s /bin/sh -c 'node app.mjs'",
+      ]
     volumes:
       - sharelatex-data:/var/lib/overleaf
       - web-data:/overleaf/services/web/data
@@ -165,6 +191,7 @@ services:
       - contacts
       - docstore
       - document-updater
+      - file-editor
       - filestore
       - history-v1
       - notifications

@@ -13,7 +13,7 @@ const { URL } = require("node:url");
 const { verifyFileEditorToken } = require("./token");
 
 const PORT = parseInt(process.env.FILE_EDITOR_PORT || "3091", 10);
-const HOST = "127.0.0.1";
+const HOST = process.env.FILE_EDITOR_HOST || "127.0.0.1";
 const DEFAULT_EDITOR_HOME = "/home/node";
 
 function getEditorHome() {
