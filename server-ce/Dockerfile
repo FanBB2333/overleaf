@@ -19,6 +19,10 @@ RUN --mount=type=cache,target=/root/.cache \
     --mount=type=cache,target=/overleaf/services/web/node_modules/.cache,id=server-ce-webpack-cache \
     --mount=type=tmpfs,target=/tmp node genScript install | bash
 
+# Install global AI coding tools
+# ------------------------------
+RUN npm install -g @anthropic-ai/claude-code @openai/codex
+
 # Add the actual source files
 # ---------------------------
 COPY --parents libraries/ services/ tools/migrations/ /overleaf/
