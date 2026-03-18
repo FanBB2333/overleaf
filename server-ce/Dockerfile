@@ -23,6 +23,14 @@ RUN --mount=type=cache,target=/root/.cache \
 # ------------------------------
 RUN npm install -g @anthropic-ai/claude-code @openai/codex
 
+# Install terminal utilities for Claude Code workspaces
+# -----------------------------------------------------
+RUN apt-get update \
+ && apt-get install -y sudo vim-tiny nano less \
+ && rm -rf /var/lib/apt/lists/* \
+ && printf 'node ALL=(ALL) NOPASSWD:ALL\nwww-data ALL=(ALL) NOPASSWD:ALL\n' > /etc/sudoers.d/overleaf-terminal \
+ && chmod 0440 /etc/sudoers.d/overleaf-terminal
+
 # Add the actual source files
 # ---------------------------
 COPY --parents libraries/ services/ tools/migrations/ /overleaf/
@@ -34,6 +42,10 @@ RUN --mount=type=cache,target=/root/.cache \
 # Copy runit service startup scripts to its location
 # --------------------------------------------------
 ADD server-ce/runit /etc/service
+
+# Copy file editor service
+# ------------------------
+COPY server-ce/file-editor /overleaf/file-editor
 
 # Copy runit global settings to its location
 # ------------------------------------------
@@ -102,6 +114,10 @@ ENV WEB_API_USER="overleaf"
 ENV ADMIN_PRIVILEGE_AVAILABLE="true"
 
 ENV OVERLEAF_APP_NAME="Overleaf Community Edition"
+ENV FILE_EDITOR_PORT="3091"
+ENV EDITOR="vim"
+ENV VISUAL="vim"
+ENV PAGER="less"
 
 ENV OPTIMISE_PDF="true"
 

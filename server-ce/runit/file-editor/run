@@ -1,0 +1,5 @@
+#!/bin/bash
+
+source /etc/overleaf/env.sh
+
+exec /usr/bin/node /overleaf/file-editor/app.js >> /var/log/overleaf/file-editor.log 2>&1
