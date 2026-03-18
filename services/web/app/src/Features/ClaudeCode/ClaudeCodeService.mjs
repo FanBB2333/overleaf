@@ -95,6 +95,8 @@ class ClaudeCodeService {
           workspace.files.map((file) => this.normalizeProjectPath(file.path)),
         ),
         ignoredWorkspacePaths: new Map(),
+        workspaceDirtyPaths: new Set(),
+        workspaceFullSyncRequested: false,
         pendingProjectSyncs: new Set(),
         workspaceSyncTimer: null,
         workspaceSyncInProgress: false,
@@ -412,18 +414,22 @@ class ClaudeCodeService {
       { recursive: true },
       (_eventType, filename) => {
         if (!filename) {
+          // Some platforms/filesystems can omit the filename; fall back to a full rescan.
+          session.workspaceFullSyncRequested = true;
+          this.scheduleWorkspaceSync(session);
           return;
         }
 
         const projectPath = this.normalizeProjectPath(filename.toString());
         if (
           session.binaryPaths.has(projectPath) ||
-          IGNORED_WORKSPACE_PATHS.has(projectPath) ||
-          this.isWorkspacePathIgnored(session, projectPath)
+          IGNORED_WORKSPACE_PATHS.has(projectPath)
         ) {
           return;
         }
 
+        // Track dirty paths so we can sync incrementally instead of rescanning the whole tree.
+        session.workspaceDirtyPaths.add(projectPath);
         this.scheduleWorkspaceSync(session);
       },
     );
@@ -488,32 +494,60 @@ class ClaudeCodeService {
       return;
     }
 
+    // Avoid scanning/reading the workspace while we're writing project changes into it,
+    // otherwise we can read partially-written files and push broken content to the project.
+    if (session.projectSyncInProgress) {
+      session.workspaceSyncQueued = true;
+      return;
+    }
+
     session.workspaceSyncInProgress = true;
 
     try {
-      const workspaceDocs = await this.readWorkspaceDocs(session);
-      const workspacePaths = new Set(workspaceDocs.keys());
+      if (session.workspaceFullSyncRequested) {
+        session.workspaceFullSyncRequested = false;
+        session.workspaceDirtyPaths.clear();
+        await this.syncWorkspaceToProjectFull(session);
+        return;
+      }
 
-      for (const [projectPath, content] of workspaceDocs.entries()) {
+      const dirtyPaths = Array.from(session.workspaceDirtyPaths);
+      session.workspaceDirtyPaths.clear();
+
+      for (const projectPath of dirtyPaths) {
         if (session.pendingProjectSyncs.has(projectPath)) {
+          session.workspaceDirtyPaths.add(projectPath);
           continue;
         }
+
+        const workspacePath = this.getWorkspacePath(session.workDir, projectPath);
+
+        let buffer;
+        try {
+          buffer = await fs.readFile(workspacePath);
+        } catch (error) {
+          if (error?.code === "ENOENT") {
+            if (session.docStates.has(projectPath)) {
+              await this.deleteProjectDocFromWorkspace(session, projectPath);
+            }
+            continue;
+          }
+          if (error?.code === "EISDIR") {
+            continue;
+          }
+          throw error;
+        }
+
+        if (this.isBinaryBuffer(buffer)) {
+          continue;
+        }
+
+        const content = normalizeContent(buffer.toString("utf-8"));
         if (session.docStates.get(projectPath) === content) {
           continue;
         }
 
         await this.pushWorkspaceDocToProject(session, projectPath, content);
-      }
-
-      for (const projectPath of Array.from(session.docStates.keys())) {
-        if (
-          workspacePaths.has(projectPath) ||
-          session.pendingProjectSyncs.has(projectPath)
-        ) {
-          continue;
-        }
-
-        await this.deleteProjectDocFromWorkspace(session, projectPath);
       }
     } finally {
       session.workspaceSyncInProgress = false;
@@ -524,8 +558,39 @@ class ClaudeCodeService {
     }
   }
 
+  async syncWorkspaceToProjectFull(session) {
+    const workspaceDocs = await this.readWorkspaceDocs(session);
+    const workspacePaths = new Set(workspaceDocs.keys());
+
+    for (const [projectPath, content] of workspaceDocs.entries()) {
+      if (session.pendingProjectSyncs.has(projectPath)) {
+        continue;
+      }
+      if (session.docStates.get(projectPath) === content) {
+        continue;
+      }
+
+      await this.pushWorkspaceDocToProject(session, projectPath, content);
+    }
+
+    for (const projectPath of Array.from(session.docStates.keys())) {
+      if (workspacePaths.has(projectPath) || session.pendingProjectSyncs.has(projectPath)) {
+        continue;
+      }
+
+      await this.deleteProjectDocFromWorkspace(session, projectPath);
+    }
+  }
+
   async syncProjectToWorkspace(session) {
     if (session.projectSyncInProgress) {
+      return;
+    }
+
+    // Don't write into the workspace while we're scanning it for terminal edits.
+    // The project polling interval is short enough that we can just pick this up
+    // on the next tick.
+    if (session.workspaceSyncInProgress) {
       return;
     }
 
@@ -567,6 +632,13 @@ class ClaudeCodeService {
       }
     } finally {
       session.projectSyncInProgress = false;
+
+      // If terminal changes were queued while project->workspace sync was in progress,
+      // schedule a follow-up sync now that the workspace is stable.
+      if (session.workspaceSyncQueued) {
+        session.workspaceSyncQueued = false;
+        this.scheduleWorkspaceSync(session);
+      }
     }
   }
 
