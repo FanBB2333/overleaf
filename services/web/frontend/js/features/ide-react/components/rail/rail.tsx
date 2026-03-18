@@ -38,6 +38,7 @@ import { shouldIncludeElement } from '@/features/ide-react/util/rail-utils'
 import { useEditorContext } from '@/shared/context/editor-context'
 import useEventListener from '@/shared/hooks/use-event-listener'
 import { CustomRailTabIcon, RailElement } from '@/features/ide-react/util/rail-types'
+import { TerminalWindow } from '@phosphor-icons/react'
 
 const moduleRailEntries = (
   importOverleafModules('railEntries') as {
@@ -60,9 +61,14 @@ const moduleRailPopovers = (
   }[]
 ).map(({ import: { default: element } }) => element)
 
-const TerminalRailIcon: CustomRailTabIcon = ({ title }) => (
+const TerminalRailIcon: CustomRailTabIcon = ({ open, title }) => (
   <>
-    <span className="fa fa-terminal ide-rail-tab-link-icon" aria-hidden="true" />
+    <TerminalWindow
+      className="ide-rail-tab-link-icon"
+      size={20}
+      weight={open ? 'fill' : 'regular'}
+      aria-hidden="true"
+    />
     <span className="visually-hidden">{title}</span>
   </>
 )
