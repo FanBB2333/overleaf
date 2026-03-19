@@ -95,7 +95,6 @@ class ClaudeCodeService {
           workspace.files.map((file) => this.normalizeProjectPath(file.path)),
         ),
         ignoredWorkspacePaths: new Map(),
-        workspaceDirtyPaths: new Set(),
         workspaceFullSyncRequested: false,
         pendingProjectSyncs: new Set(),
         workspaceSyncTimer: null,
@@ -413,23 +412,18 @@ class ClaudeCodeService {
       session.workDir,
       { recursive: true },
       (_eventType, filename) => {
-        if (!filename) {
-          // Some platforms/filesystems can omit the filename; fall back to a full rescan.
-          session.workspaceFullSyncRequested = true;
-          this.scheduleWorkspaceSync(session);
+        const projectPath = filename
+          ? this.normalizeProjectPath(filename.toString())
+          : null;
+        if (projectPath && IGNORED_WORKSPACE_PATHS.has(projectPath)) {
           return;
         }
 
-        const projectPath = this.normalizeProjectPath(filename.toString());
-        if (
-          session.binaryPaths.has(projectPath) ||
-          IGNORED_WORKSPACE_PATHS.has(projectPath)
-        ) {
-          return;
-        }
-
-        // Track dirty paths so we can sync incrementally instead of rescanning the whole tree.
-        session.workspaceDirtyPaths.add(projectPath);
+        // Workspace writes in terminal tools are often implemented as multi-step
+        // rename/temp-file sequences, so watcher filenames are not reliable
+        // enough to use as the sole sync target. Re-scan after a quiet period
+        // and diff against the known project snapshot instead.
+        session.workspaceFullSyncRequested = true;
         this.scheduleWorkspaceSync(session);
       },
     );
@@ -504,51 +498,8 @@ class ClaudeCodeService {
     session.workspaceSyncInProgress = true;
 
     try {
-      if (session.workspaceFullSyncRequested) {
-        session.workspaceFullSyncRequested = false;
-        session.workspaceDirtyPaths.clear();
-        await this.syncWorkspaceToProjectFull(session);
-        return;
-      }
-
-      const dirtyPaths = Array.from(session.workspaceDirtyPaths);
-      session.workspaceDirtyPaths.clear();
-
-      for (const projectPath of dirtyPaths) {
-        if (session.pendingProjectSyncs.has(projectPath)) {
-          session.workspaceDirtyPaths.add(projectPath);
-          continue;
-        }
-
-        const workspacePath = this.getWorkspacePath(session.workDir, projectPath);
-
-        let buffer;
-        try {
-          buffer = await fs.readFile(workspacePath);
-        } catch (error) {
-          if (error?.code === "ENOENT") {
-            if (session.docStates.has(projectPath)) {
-              await this.deleteProjectDocFromWorkspace(session, projectPath);
-            }
-            continue;
-          }
-          if (error?.code === "EISDIR") {
-            continue;
-          }
-          throw error;
-        }
-
-        if (this.isBinaryBuffer(buffer)) {
-          continue;
-        }
-
-        const content = normalizeContent(buffer.toString("utf-8"));
-        if (session.docStates.get(projectPath) === content) {
-          continue;
-        }
-
-        await this.pushWorkspaceDocToProject(session, projectPath, content);
-      }
+      session.workspaceFullSyncRequested = false;
+      await this.syncWorkspaceToProjectFull(session);
     } finally {
       session.workspaceSyncInProgress = false;
       if (session.workspaceSyncQueued) {

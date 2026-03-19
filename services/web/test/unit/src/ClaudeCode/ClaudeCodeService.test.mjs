@@ -89,7 +89,6 @@ describe("ClaudeCodeService", function () {
       workDir: "/tmp/workspace-project-123",
       binaryPaths: new Set(),
       ignoredWorkspacePaths: new Map([["/main.tex", Date.now() + 2000]]),
-      workspaceDirtyPaths: new Set(),
       workspaceFullSyncRequested: false,
       workspaceSyncTimer: null,
       workspaceSyncInProgress: false,
@@ -104,7 +103,7 @@ describe("ClaudeCodeService", function () {
 
     ctx.watchCallback("change", "main.tex");
 
-    expect(session.workspaceDirtyPaths.has("/main.tex")).to.equal(true);
+    expect(session.workspaceFullSyncRequested).to.equal(true);
     expect(scheduleSpy).toHaveBeenCalledTimes(1);
 
     clearInterval(session.projectSyncInterval);
@@ -121,7 +120,6 @@ describe("ClaudeCodeService", function () {
       workDir: "/tmp/workspace-project-123",
       binaryPaths: new Set(),
       ignoredWorkspacePaths: new Map(),
-      workspaceDirtyPaths: new Set(),
       workspaceFullSyncRequested: false,
       workspaceSyncTimer: null,
       workspaceSyncInProgress: false,
@@ -139,5 +137,32 @@ describe("ClaudeCodeService", function () {
     clearInterval(session.projectSyncInterval);
     session.workspaceWatcher.close();
   });
-});
 
+  it("ignores shell history watcher noise", async function (ctx) {
+    const scheduleSpy = vi
+      .spyOn(ctx.service, "scheduleWorkspaceSync")
+      .mockImplementation(() => {});
+
+    const session = {
+      projectId: "project-123",
+      workDir: "/tmp/workspace-project-123",
+      binaryPaths: new Set(),
+      ignoredWorkspacePaths: new Map(),
+      workspaceFullSyncRequested: false,
+      workspaceSyncTimer: null,
+      workspaceSyncInProgress: false,
+      workspaceSyncQueued: false,
+      projectSyncInProgress: false,
+    };
+
+    ctx.service.startSynchronization(session);
+
+    ctx.watchCallback("change", ".bash_history");
+
+    expect(session.workspaceFullSyncRequested).to.equal(false);
+    expect(scheduleSpy).not.toHaveBeenCalled();
+
+    clearInterval(session.projectSyncInterval);
+    session.workspaceWatcher.close();
+  });
+});
